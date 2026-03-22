@@ -3,6 +3,7 @@ import yaml
 import socket
 import getpass
 import numpy as np
+import torch
 from config import _C as C
 
 
@@ -59,3 +60,12 @@ def get_data_root():
                     return paths_config[hostname_re][username_re]['data_dir']
 
     raise Exception('No matching hostname or username in config file')
+
+
+def get_runtime_device():
+    if torch.cuda.is_available():
+        torch.backends.cudnn.deterministic = True
+        torch.cuda.manual_seed(0)
+        return torch.device('cuda')
+
+    return torch.device('cpu')

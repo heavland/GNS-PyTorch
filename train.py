@@ -15,6 +15,7 @@ def arg_parse():
     parser.add_argument('--init', type=str, help='init model from', default='')
     parser.add_argument('--exp-name', type=str, help='exp name')
     parser.add_argument('--seed', type=int, help='random seed', default=0)
+    parser.add_argument('--device', type=str, choices=['auto', 'cuda', 'cpu'], default='auto')
     return parser.parse_args()
 
 
@@ -26,11 +27,15 @@ def main():
     np.random.seed(rng_seed)
     torch.manual_seed(rng_seed)
 
-    if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.cuda.manual_seed(0)
+    runtime_device = utils.get_runtime_device()
+    if args.device == 'cuda':
+        if runtime_device.type != 'cuda':
+            raise RuntimeError('CUDA requested but not available')
+        device = torch.device('cuda')
+    elif args.device == 'cpu':
+        device = torch.device('cpu')
     else:
-        raise NotImplementedError
+        device = runtime_device
 
     # ---- setup config files
     cfg.merge_from_file(args.cfg)
@@ -39,7 +44,7 @@ def main():
 
     # ---- setup model
     model = dyn_model.Net()
-    model.to(torch.device('cuda'))
+    model.to(device)
 
     # ---- setup optimizer
     optim = torch.optim.Adam(
@@ -51,7 +56,7 @@ def main():
     # ---- if resume experiments, use --init ${model_name}
     if args.init:
         print(f'loading pretrained model from {args.init}')
-        cp = torch.load(args.init)
+        cp = torch.load(args.init, map_location=device)
         model.load_state_dict(cp['model'], False)
 
     # ---- setup dataset in the last, and avoid non-deterministic in data shuffling order
@@ -71,7 +76,7 @@ def main():
     print(f'size: train {len(train_loader)} / test {len(val_loader)}')
 
     # ---- setup trainer
-    kwargs = {'device': torch.device('cuda'),
+    kwargs = {'device': device,
               'model': model,
               'optim': optim,
               'train_loader': train_loader,

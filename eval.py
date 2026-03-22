@@ -15,6 +15,7 @@ def arg_parse():
     parser.add_argument('--cfg', required=True, help='path to config file', type=str)
     parser.add_argument('--ckpt', type=str, help='', default=None)
     parser.add_argument('--data-dir', type=str)
+    parser.add_argument('--device', type=str, choices=['auto', 'cuda', 'cpu'], default='auto')
     return parser.parse_args()
 
 def main():
@@ -23,11 +24,15 @@ def main():
     np.random.seed(0)
     torch.manual_seed(0)
 
-    if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.cuda.manual_seed(0)
+    runtime_device = utils.get_runtime_device()
+    if args.device == 'cuda':
+        if runtime_device.type != 'cuda':
+            raise RuntimeError('CUDA requested but not available')
+        device = torch.device('cuda')
+    elif args.device == 'cpu':
+        device = torch.device('cpu')
     else:
-        raise NotImplementedError
+        device = runtime_device
 
     # --- setup config files
     C.merge_from_file(args.cfg)
@@ -42,12 +47,12 @@ def main():
     data_loader = DataLoader(dataset, batch_size=C.SOLVER.BATCH_SIZE, num_workers=0)
 
     model = dyn_model.Net()
-    model.to(torch.device('cuda'))
+    model.to(device)
 
-    cp = torch.load(args.ckpt, map_location=f'cuda:0')
+    cp = torch.load(args.ckpt, map_location=device)
     model.load_state_dict(cp['model'])
     tester = PredEvaluator(
-        device=torch.device('cuda'),
+        device=device,
         data_loader=data_loader,
         model=model,
         output_dir=output_dir,

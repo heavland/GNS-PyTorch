@@ -8,6 +8,7 @@ Set up conda env and install dependencies:
 ```
 conda env create -f environment.yml
 ```
+The environment file targets Python 3.10 with PyTorch 2.5 and CUDA 12.1.
 
 ### Data
 Download datasets and convert to pytorch-friendly format:
@@ -22,6 +23,7 @@ Training with tensorboard logging and model saving:
 ```
 python train.py --cfg configs/dmwater.yaml --exp-name dmwater
 ```
+You can override device selection with `--device auto|cuda|cpu` (default: `auto`).
 Tensorboard log files are saved under `logs/{exp-name}`.
 
 ### Evaluation
@@ -29,6 +31,7 @@ Evaluate using saved checkpoint:
 ```
 python eval.py --cfg configs/dmwater.yaml --ckpt ckpts/dmwater/iter_25000.path.tar --data-dir WaterRamps/test
 ```
+You can override device selection with `--device auto|cuda|cpu` (default: `auto`).
 Rollout visualization gifs are saved under `eval_vis/`.
 
 ### Result
