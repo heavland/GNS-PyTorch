@@ -62,14 +62,8 @@ def get_data_root():
     raise Exception('No matching hostname or username in config file')
 
 
-def get_runtime_device():
-    if torch.cuda.is_available():
-        return torch.device('cuda')
-    return torch.device('cpu')
-
-
 def select_device(device_mode='auto'):
-    runtime_device = get_runtime_device()
+    runtime_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     if device_mode == 'cuda':
         if runtime_device.type != 'cuda':
             raise RuntimeError('CUDA requested but not available')
