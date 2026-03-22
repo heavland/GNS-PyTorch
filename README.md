@@ -15,7 +15,8 @@ This environment is upgraded for modern GPUs (including RTX 50 series) with PyTo
 Verify installation:
 ```
 python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"
-python -c "import torch; print(torch.cuda.get_device_name(0), torch.cuda.get_device_capability(0))"
+python -c "import torch; \
+    print((lambda i: (torch.cuda.get_device_name(i), torch.cuda.get_device_capability(i)))(torch.cuda.current_device()) if torch.cuda.is_available() else 'CUDA not available')"
 ```
 
 If your driver/CUDA combination differs, regenerate install command from:
