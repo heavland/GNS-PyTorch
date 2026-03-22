@@ -55,7 +55,7 @@ class PredEvaluator(object):
 
                 # plot gifs and save
                 color = np.zeros([particle_type.shape[0], 3])
-                color[nonk_mask.cpu().numpy().astype(np.bool)] = [0.122, 0.467, 0.706]
+                color[nonk_mask.cpu().numpy().astype(bool)] = [0.122, 0.467, 0.706]
                 fig = plt.figure(figsize=(12, 6))
 
                 points1 = tgt_pos_seq[:, 0]
