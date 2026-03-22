@@ -27,15 +27,10 @@ def main():
     np.random.seed(rng_seed)
     torch.manual_seed(rng_seed)
 
-    runtime_device = utils.get_runtime_device()
-    if args.device == 'cuda':
-        if runtime_device.type != 'cuda':
-            raise RuntimeError('CUDA requested but not available')
-        device = torch.device('cuda')
-    elif args.device == 'cpu':
-        device = torch.device('cpu')
-    else:
-        device = runtime_device
+    device = utils.select_device(args.device)
+    if device.type == 'cuda':
+        torch.backends.cudnn.deterministic = True
+        torch.cuda.manual_seed(rng_seed)
 
     # ---- setup config files
     cfg.merge_from_file(args.cfg)

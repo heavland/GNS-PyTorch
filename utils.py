@@ -64,8 +64,16 @@ def get_data_root():
 
 def get_runtime_device():
     if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.cuda.manual_seed(0)
         return torch.device('cuda')
-
     return torch.device('cpu')
+
+
+def select_device(device_mode='auto'):
+    runtime_device = get_runtime_device()
+    if device_mode == 'cuda':
+        if runtime_device.type != 'cuda':
+            raise RuntimeError('CUDA requested but not available')
+        return runtime_device
+    if device_mode == 'cpu':
+        return torch.device('cpu')
+    return runtime_device
