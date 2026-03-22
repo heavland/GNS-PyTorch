@@ -25,12 +25,11 @@ def main():
     random.seed(rng_seed)
     np.random.seed(rng_seed)
     torch.manual_seed(rng_seed)
+    device = utils.get_runtime_device(operation_name='Training')
 
-    if torch.cuda.is_available():
+    if device.type == 'cuda':
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed(0)
-    else:
-        raise NotImplementedError
 
     # ---- setup config files
     cfg.merge_from_file(args.cfg)
@@ -39,7 +38,7 @@ def main():
 
     # ---- setup model
     model = dyn_model.Net()
-    model.to(torch.device('cuda'))
+    model.to(device)
 
     # ---- setup optimizer
     optim = torch.optim.Adam(
@@ -71,7 +70,7 @@ def main():
     print(f'size: train {len(train_loader)} / test {len(val_loader)}')
 
     # ---- setup trainer
-    kwargs = {'device': torch.device('cuda'),
+    kwargs = {'device': device,
               'model': model,
               'optim': optim,
               'train_loader': train_loader,

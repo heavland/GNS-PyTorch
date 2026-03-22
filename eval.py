@@ -22,12 +22,11 @@ def main():
     random.seed(0)
     np.random.seed(0)
     torch.manual_seed(0)
+    device = utils.get_runtime_device(operation_name='Evaluation')
 
-    if torch.cuda.is_available():
+    if device.type == 'cuda':
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed(0)
-    else:
-        raise NotImplementedError
 
     # --- setup config files
     C.merge_from_file(args.cfg)
@@ -42,12 +41,12 @@ def main():
     data_loader = DataLoader(dataset, batch_size=C.SOLVER.BATCH_SIZE, num_workers=0)
 
     model = dyn_model.Net()
-    model.to(torch.device('cuda'))
+    model.to(device)
 
-    cp = torch.load(args.ckpt, map_location=f'cuda:0')
+    cp = torch.load(args.ckpt, map_location=device)
     model.load_state_dict(cp['model'])
     tester = PredEvaluator(
-        device=torch.device('cuda'),
+        device=device,
         data_loader=data_loader,
         model=model,
         output_dir=output_dir,
