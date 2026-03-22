@@ -9,6 +9,9 @@ Set up conda env and install dependencies:
 conda env create -f environment.yml
 ```
 
+> Note for newer GPUs (e.g. RTX 50 series): this repository now falls back to CPU when your local PyTorch build does not support the GPU architecture.  
+> For GPU training speed, install a newer PyTorch/CUDA build from https://pytorch.org/get-started/locally/
+
 ### Data
 Download datasets and convert to pytorch-friendly format:
 ```

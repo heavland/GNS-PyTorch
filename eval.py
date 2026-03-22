@@ -17,17 +17,32 @@ def arg_parse():
     parser.add_argument('--data-dir', type=str)
     return parser.parse_args()
 
+def get_runtime_device():
+    if not torch.cuda.is_available():
+        print('[Warning] CUDA is unavailable, fallback to CPU.')
+        return torch.device('cpu')
+
+    capability = torch.cuda.get_device_capability()
+    arch = f'sm_{capability[0]}{capability[1]}'
+    arch_list = torch.cuda.get_arch_list()
+    if arch not in arch_list:
+        print(f'[Warning] Current PyTorch does not support {arch} ({torch.cuda.get_device_name(0)}).')
+        print('[Warning] Please reinstall a newer PyTorch build from https://pytorch.org/get-started/locally/')
+        print('[Warning] Fallback to CPU. Evaluation will be slower.')
+        return torch.device('cpu')
+
+    return torch.device('cuda')
+
 def main():
     args = arg_parse()
     random.seed(0)
     np.random.seed(0)
     torch.manual_seed(0)
+    device = get_runtime_device()
 
-    if torch.cuda.is_available():
+    if device.type == 'cuda':
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed(0)
-    else:
-        raise NotImplementedError
 
     # --- setup config files
     C.merge_from_file(args.cfg)
@@ -42,12 +57,12 @@ def main():
     data_loader = DataLoader(dataset, batch_size=C.SOLVER.BATCH_SIZE, num_workers=0)
 
     model = dyn_model.Net()
-    model.to(torch.device('cuda'))
+    model.to(device)
 
-    cp = torch.load(args.ckpt, map_location=f'cuda:0')
+    cp = torch.load(args.ckpt, map_location=device)
     model.load_state_dict(cp['model'])
     tester = PredEvaluator(
-        device=torch.device('cuda'),
+        device=device,
         data_loader=data_loader,
         model=model,
         output_dir=output_dir,
