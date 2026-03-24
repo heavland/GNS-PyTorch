@@ -1,0 +1,28 @@
+name: gns_train
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      # NOTE: PyTorch (cu128) must be installed separately after env creation:
+      #   pip install torch==2.7.0+cu128 torchvision==0.22.0+cu128 torchaudio==2.7.0+cu128 \
+      #       --index-url https://download.pytorch.org/whl/cu128
+
+      # core scientific stack
+      - numpy>=1.24,<2.1
+      - scipy>=1.10,<1.15
+      - h5py>=3.8
+
+      # config / IO
+      - pyyaml>=6.0
+      - yacs>=0.1.8
+
+      # visualization / logging
+      - matplotlib>=3.7
+      - tqdm>=4.65
+      - tensorboard>=2.14
+
+      # data utilities
+      - pandas>=1.5,<2.3
