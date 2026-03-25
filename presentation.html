@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GNS-PyTorch 复现成果展示</title>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #050a14; color: #e8f0fe; }
+
+    /* ─── Canvas Background ─────────────────────────────────── */
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; opacity: .45; }
+
+    /* ─── Slide Container ───────────────────────────────────── */
+    #deck { position: fixed; inset: 0; z-index: 1; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 60px 80px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .55s ease, transform .55s ease;
+      transform: translateX(60px);
+    }
+    .slide.active  { opacity: 1; pointer-events: auto; transform: translateX(0); }
+    .slide.leaving { opacity: 0; transform: translateX(-60px); }
+
+    /* ─── Common Elements ───────────────────────────────────── */
+    .tag {
+      font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+      color: #7aadff; border: 1px solid #2a4880; border-radius: 4px;
+      padding: 4px 12px; margin-bottom: 20px; backdrop-filter: blur(4px);
+    }
+    h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 700; line-height: 1.18; text-align: center; color: #fff; }
+    h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 600; text-align: center; color: #c9d8ff; margin-bottom: 28px; }
+    h3 { font-size: 1.1rem; font-weight: 600; color: #9bbeff; margin-bottom: 8px; }
+    p  { font-size: .95rem; line-height: 1.75; color: #b0c4ef; }
+    .accent { color: #7ec8e3; }
+    .hi { color: #a5d8ff; font-weight: 600; }
+    a  { color: #7aadff; }
+
+    /* ─── Subtitle on title slide ───────────────────────────── */
+    .subtitle { font-size: 1.1rem; color: #7ec8e3; margin-top: 14px; text-align: center; }
+    .subtitle-small { font-size: .85rem; color: #556080; margin-top: 8px; text-align: center; }
+
+    /* ─── Glowing divider ───────────────────────────────────── */
+    .divider {
+      width: 60px; height: 3px; border-radius: 2px;
+      background: linear-gradient(90deg, #3a7bd5, #7ec8e3);
+      margin: 18px auto 0;
+      box-shadow: 0 0 12px #3a7bd566;
+    }
+
+    /* ─── Grid layouts ──────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; width: 100%; max-width: 1100px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; width: 100%; max-width: 1100px; }
+
+    /* ─── Cards ─────────────────────────────────────────────── */
+    .card {
+      background: rgba(15,30,65,.72); border: 1px solid rgba(90,130,210,.22);
+      border-radius: 14px; padding: 24px 28px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 28px rgba(0,0,0,.35);
+    }
+    .card ul { padding-left: 18px; }
+    .card ul li { font-size: .9rem; color: #b0c4ef; line-height: 1.8; }
+    .card ul li span { color: #7ec8e3; }
+
+    /* ─── Architecture diagram ──────────────────────────────── */
+    .arch-flow {
+      display: flex; align-items: center; gap: 0;
+      width: 100%; max-width: 900px;
+      flex-wrap: nowrap;
+    }
+    .arch-box {
+      flex: 1; text-align: center; padding: 14px 10px;
+      background: rgba(20,45,100,.7); border: 1px solid rgba(90,150,255,.25);
+      border-radius: 10px; font-size: .82rem; color: #c5d8ff;
+    }
+    .arch-arrow {
+      font-size: 1.4rem; color: #3a7bd5; padding: 0 6px; flex-shrink: 0;
+    }
+
+    /* ─── Stats row ─────────────────────────────────────────── */
+    .stats { display: flex; gap: 32px; justify-content: center; margin-top: 18px; }
+    .stat-item { text-align: center; }
+    .stat-num { font-size: 2.2rem; font-weight: 700; color: #7ec8e3; }
+    .stat-label { font-size: .78rem; color: #5a7aac; text-transform: uppercase; letter-spacing: .1em; }
+
+    /* ─── GIF gallery ───────────────────────────────────────── */
+    .gif-gallery {
+      display: flex; gap: 20px; justify-content: center; align-items: flex-start;
+      width: 100%; max-width: 1100px; flex-wrap: wrap;
+    }
+    .gif-item {
+      flex: 1; min-width: 240px; max-width: 340px;
+      background: rgba(10,22,50,.8); border: 1px solid rgba(90,130,210,.25);
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 6px 24px rgba(0,0,0,.4);
+    }
+    .gif-item img { width: 100%; display: block; }
+    .gif-caption {
+      text-align: center; font-size: .78rem; color: #5a7aac;
+      padding: 8px 0;
+    }
+
+    /* ─── Placeholder area ──────────────────────────────────── */
+    .placeholder-zone {
+      display: flex; gap: 20px; justify-content: center;
+      flex-wrap: wrap; width: 100%; max-width: 1100px;
+    }
+    .placeholder-box {
+      flex: 1; min-width: 240px; max-width: 340px; aspect-ratio: 4/3;
+      border: 2px dashed rgba(90,130,210,.45);
+      border-radius: 14px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+      background: rgba(15,30,65,.55); backdrop-filter: blur(6px);
+      cursor: pointer; transition: border-color .3s, background .3s;
+    }
+    .placeholder-box:hover { border-color: #7ec8e3; background: rgba(20,50,100,.7); }
+    .placeholder-box .ph-icon { font-size: 2rem; color: #3a7bd5; }
+    .placeholder-box .ph-text { font-size: .82rem; color: #556080; text-align: center; line-height: 1.6; }
+    .placeholder-box input[type="file"] { display: none; }
+    .placeholder-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: none; }
+
+    /* ─── Conclusion cards ───────────────────────────────────── */
+    .conclusion-card {
+      display: flex; align-items: flex-start; gap: 16px;
+      background: rgba(15,30,65,.72); border: 1px solid rgba(90,130,210,.22);
+      border-radius: 14px; padding: 20px 24px;
+    }
+    .conclusion-card .icon { font-size: 1.8rem; flex-shrink: 0; margin-top: 2px; }
+
+    /* ─── Navigation ─────────────────────────────────────────── */
+    #nav {
+      position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 14px; z-index: 10;
+    }
+    .nav-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1px solid rgba(90,130,210,.45);
+      background: rgba(15,30,65,.85); backdrop-filter: blur(8px);
+      color: #7aadff; font-size: 1.1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .25s, border-color .25s, transform .15s;
+    }
+    .nav-btn:hover { background: rgba(40,80,160,.7); border-color: #7aadff; transform: scale(1.08); }
+    .nav-btn:disabled { opacity: .3; cursor: default; transform: none; }
+    #slide-counter { font-size: .82rem; color: #5a7aac; min-width: 60px; text-align: center; }
+
+    /* ─── Progress bar ───────────────────────────────────────── */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 3px; z-index: 10;
+      background: linear-gradient(90deg, #3a7bd5, #7ec8e3);
+      transition: width .45s ease;
+      box-shadow: 0 0 8px #3a7bd5aa;
+    }
+
+    /* ─── Slide-number dots ──────────────────────────────────── */
+    #dots {
+      position: fixed; right: 28px; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 8px; z-index: 10;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(90,130,210,.3); cursor: pointer;
+      transition: background .3s, transform .3s;
+    }
+    .dot.active { background: #7ec8e3; transform: scale(1.4); }
+
+    /* ─── Keyboard hint ──────────────────────────────────────── */
+    #kbd-hint {
+      position: fixed; bottom: 36px; right: 32px;
+      font-size: .72rem; color: #2a3a5a; z-index: 10;
+    }
+
+    /* ─── Slide-specific overrides ───────────────────────────── */
+    #slide-title { background: radial-gradient(ellipse at center, rgba(30,60,130,.35) 0%, transparent 70%); }
+    #slide-title h1 { background: linear-gradient(135deg, #fff 30%, #7ec8e3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    #slide-title .glow-ring {
+      position: absolute; width: 420px; height: 420px;
+      border-radius: 50%; border: 1px solid rgba(60,120,220,.18);
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      animation: pulse-ring 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    #slide-title .glow-ring:nth-child(2) { width: 600px; height: 600px; animation-delay: 1.5s; }
+    @keyframes pulse-ring {
+      0%,100% { opacity: .3; transform: translate(-50%,-50%) scale(1); }
+      50%      { opacity: .08; transform: translate(-50%,-50%) scale(1.04); }
+    }
+
+    /* ─── Scroll within a slide (for tall content) ───────────── */
+    .slide-inner { width: 100%; max-width: 1100px; overflow-y: auto; max-height: calc(100vh - 140px); padding-right: 6px; }
+    .slide-inner::-webkit-scrollbar { width: 4px; }
+    .slide-inner::-webkit-scrollbar-thumb { background: rgba(90,130,210,.3); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Particle background ─────────────────────────────────────── -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- ── Progress bar ──────────────────────────────────────────────── -->
+<div id="progress-bar"></div>
+
+<!-- ── Side dots ─────────────────────────────────────────────────── -->
+<div id="dots"></div>
+
+<!-- ═══════════════════  SLIDES  ═════════════════════════════════ -->
+<div id="deck">
+
+  <!-- ── Slide 0 : Title ────────────────────────────────────────── -->
+  <section class="slide active" id="slide-title">
+    <div class="glow-ring"></div>
+    <div class="glow-ring"></div>
+    <div class="tag">ICML 2020 · PyTorch 复现</div>
+    <h1>Graph Network-based<br>Simulators</h1>
+    <p class="subtitle">Learning to Simulate Complex Physics with Graph Networks</p>
+    <div class="divider"></div>
+    <p class="subtitle-small" style="margin-top:28px;">
+      DeepMind &nbsp;·&nbsp; Alvaro Sanchez-Gonzalez et al.
+      &nbsp;·&nbsp; <a href="https://arxiv.org/abs/2002.09405" target="_blank">arXiv 2002.09405</a>
+    </p>
+    <p class="subtitle-small" style="margin-top:6px;">PyTorch 复现成果展示 &nbsp;·&nbsp; GNS-PyTorch</p>
+  </section>
+
+  <!-- ── Slide 1 : Background ───────────────────────────────────── -->
+  <section class="slide" id="slide-bg">
+    <div class="tag">背景</div>
+    <h2>为什么需要可学习的物理模拟器？</h2>
+    <div class="grid-2" style="max-width:960px;">
+      <div class="card">
+        <h3>🌊 传统方法的局限</h3>
+        <ul>
+          <li>基于偏微分方程（PDE），计算代价昂贵</li>
+          <li>需要精细调节物理参数，泛化性有限</li>
+          <li>难以处理大规模粒子系统</li>
+          <li>不支持端到端可微分学习</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🤖 GNS 的优势</h3>
+        <ul>
+          <li>从数据中学习物理规律，无需手工建模</li>
+          <li>图神经网络表达粒子交互</li>
+          <li>推理速度比传统方法快数十倍</li>
+          <li>一个框架统一水、沙、胶等材料</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🎯 论文目标</h3>
+        <ul>
+          <li>提出<span> 通用粒子模拟学习框架</span></li>
+          <li>支持跨材料（水 / 沙 / 胶 / 布料）泛化</li>
+          <li>在 6 种物理场景中 SOTA 性能</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📦 本复现聚焦</h3>
+        <ul>
+          <li>数据集：<span>WaterRamps</span>（水流冲坡）</li>
+          <li>纯 PyTorch 原生 API 实现</li>
+          <li>保留完整训练 / 评估 / 可视化流程</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 2 : Paper Overview ───────────────────────────────── -->
+  <section class="slide" id="slide-paper">
+    <div class="tag">论文概览</div>
+    <h2>Learning to Simulate Complex Physics with Graph Networks</h2>
+    <div class="slide-inner">
+      <div class="grid-2" style="max-width:900px; margin:0 auto;">
+        <div class="card">
+          <h3>📌 核心思想</h3>
+          <p style="margin-top:6px;">
+            将物理系统抽象为<span class="hi">粒子图（Particle Graph）</span>，
+            每个粒子为节点，邻近粒子间的交互为边。
+            通过图神经网络进行<span class="hi">消息传递（Message Passing）</span>，
+            预测每个粒子下一步的加速度，再积分得到位置。
+          </p>
+        </div>
+        <div class="card">
+          <h3>🔬 输入特征</h3>
+          <ul style="margin-top:6px;">
+            <li>节点：过去 <span>N 帧速度</span> + 到边界距离 + 粒子类型嵌入</li>
+            <li>边：相对位移 + 粒子间距离</li>
+            <li>本复现：历史帧数 <span>N_HIS = 6</span>，边维度 3</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🔁 训练目标</h3>
+          <p style="margin-top:6px;">
+            预测<span class="hi">归一化加速度</span>（对速度噪声鲁棒），
+            均方误差损失（MSE），仅对动态粒子计算损失（排除静态边界粒子）。
+          </p>
+        </div>
+        <div class="card">
+          <h3>📊 评估指标</h3>
+          <p style="margin-top:6px;">
+            <span class="hi">滚动位置 MSE（Rollout Position MSE）</span>：
+            从初始帧出发自回归预测完整轨迹，
+            与真实轨迹逐帧比较位置误差。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 3 : Architecture ─────────────────────────────────── -->
+  <section class="slide" id="slide-arch">
+    <div class="tag">模型架构</div>
+    <h2>GNS 架构：Encoder → Processor → Decoder</h2>
+    <div class="arch-flow" style="margin-bottom:28px;">
+      <div class="arch-box">
+        <div style="font-size:1.4rem; margin-bottom:6px;">📷</div>
+        <strong>输入</strong><br>
+        历史速度 / 到墙距离 / 粒子类型
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box">
+        <div style="font-size:1.4rem; margin-bottom:6px;">🔐</div>
+        <strong>Encoder</strong><br>
+        节点 &amp; 边 MLP 映射到隐空间
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box" style="flex:2; border-color:rgba(120,180,255,.4); background:rgba(30,60,130,.55);">
+        <div style="font-size:1.4rem; margin-bottom:6px;">🔄</div>
+        <strong>Processor (10 × GraphNet)</strong><br>
+        消息传递：边 → 聚合 → 节点更新
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box">
+        <div style="font-size:1.4rem; margin-bottom:6px;">🔓</div>
+        <strong>Decoder</strong><br>
+        MLP → 预测加速度
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box">
+        <div style="font-size:1.4rem; margin-bottom:6px;">🎯</div>
+        <strong>积分</strong><br>
+        加速度 → 速度 → 位置
+      </div>
+    </div>
+    <div class="grid-3" style="max-width:900px;">
+      <div class="card">
+        <h3>图构建</h3>
+        <p>KDTree 半径搜索（<span class="accent">r = 0.015</span>），每粒子最多 <span class="accent">150</span> 条边，包含自环</p>
+      </div>
+      <div class="card">
+        <h3>网络规模</h3>
+        <p>隐藏层维度 <span class="accent">128</span>，GNN 层数 <span class="accent">10</span>，粒子类型嵌入 <span class="accent">16</span></p>
+      </div>
+      <div class="card">
+        <h3>训练设置</h3>
+        <p>学习率 <span class="accent">1e-4</span>，指数衰减，添加噪声 <span class="accent">σ=6.7e-4</span> 提升鲁棒性</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 4 : Implementation ───────────────────────────────── -->
+  <section class="slide" id="slide-impl">
+    <div class="tag">复现实现</div>
+    <h2>GNS-PyTorch：纯 PyTorch 原生实现</h2>
+    <div class="grid-2" style="max-width:960px;">
+      <div class="card">
+        <h3>🐍 技术栈</h3>
+        <ul>
+          <li>Python <span>3.10</span> + PyTorch <span>2.5</span></li>
+          <li>CUDA <span>12.1</span>，支持 CPU fallback</li>
+          <li>纯 PyTorch 原生 API，无 TF 依赖</li>
+          <li>TensorBoard 训练日志</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📁 项目结构</h3>
+        <ul>
+          <li><span>models/</span> — 图网络层 + 动力学模型</li>
+          <li><span>datasets/</span> — TFRecord 转换 &amp; 数据加载</li>
+          <li><span>trainer.py</span> — 训练循环 + LR 调度</li>
+          <li><span>evaluator.py</span> — 滚动推理 + GIF 生成</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>⚙️ 数据流程</h3>
+        <ul>
+          <li>下载 WaterRamps TFRecord 数据集</li>
+          <li><span>extract_tfrs.py</span> 转为 PyTorch 格式</li>
+          <li>在线构建图（每步 KDTree 搜索）</li>
+          <li>动态粒子 mask 过滤边界粒子</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🎬 评估输出</h3>
+        <ul>
+          <li>自回归滚动 <span>601 步</span> 预测完整轨迹</li>
+          <li>生成预测 vs 真实对比动图 (GIF)</li>
+          <li>每 <span>25,000</span> 步保存检查点并验证</li>
+        </ul>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat-item"><div class="stat-num">10</div><div class="stat-label">GNN Layers</div></div>
+      <div class="stat-item"><div class="stat-num">128</div><div class="stat-label">Hidden Dim</div></div>
+      <div class="stat-item"><div class="stat-num">601</div><div class="stat-label">Rollout Steps</div></div>
+      <div class="stat-item"><div class="stat-num">5M</div><div class="stat-label">Max Iters</div></div>
+    </div>
+  </section>
+
+  <!-- ── Slide 5 : Original Results ────────────────────────────── -->
+  <section class="slide" id="slide-orig">
+    <div class="tag">原作者结果</div>
+    <h2>WaterRamps · 200万次训练步结果</h2>
+    <p style="text-align:center; margin-bottom:20px; font-size:.88rem;">
+      以下动图来自 README，展示模型在 WaterRamps 测试集上的<span class="hi">滚动预测</span>（蓝色粒子：预测 / 真实轨迹对比）
+    </p>
+    <div class="gif-gallery">
+      <div class="gif-item">
+        <img src="gifs/0.gif" alt="WaterRamps 预测示例 0" loading="lazy" />
+        <div class="gif-caption">测试样本 #0</div>
+      </div>
+      <div class="gif-item">
+        <img src="gifs/1.gif" alt="WaterRamps 预测示例 1" loading="lazy" />
+        <div class="gif-caption">测试样本 #1</div>
+      </div>
+      <div class="gif-item">
+        <img src="gifs/2.gif" alt="WaterRamps 预测示例 2" loading="lazy" />
+        <div class="gif-caption">测试样本 #2</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 6 : My Results (Placeholder) ────────────────────── -->
+  <section class="slide" id="slide-mine">
+    <div class="tag">我的复现结果</div>
+    <h2>我的训练结果</h2>
+    <p style="text-align:center; margin-bottom:24px; font-size:.88rem; color:#7aadff;">
+      点击下方占位框，上传你自己的训练结果图片 / GIF
+    </p>
+    <div class="placeholder-zone" id="placeholder-zone">
+      <!-- Box 1 -->
+      <label class="placeholder-box" id="ph-box-0">
+        <input type="file" accept="image/*" onchange="loadImg(this, 'ph-box-0')" />
+        <img id="ph-img-0" alt="" />
+        <span class="ph-icon">＋</span>
+        <span class="ph-text">点击上传<br>训练结果图 / GIF #1</span>
+      </label>
+      <!-- Box 2 -->
+      <label class="placeholder-box" id="ph-box-1">
+        <input type="file" accept="image/*" onchange="loadImg(this, 'ph-box-1')" />
+        <img id="ph-img-1" alt="" />
+        <span class="ph-icon">＋</span>
+        <span class="ph-text">点击上传<br>训练结果图 / GIF #2</span>
+      </label>
+      <!-- Box 3 -->
+      <label class="placeholder-box" id="ph-box-2">
+        <input type="file" accept="image/*" onchange="loadImg(this, 'ph-box-2')" />
+        <img id="ph-img-2" alt="" />
+        <span class="ph-icon">＋</span>
+        <span class="ph-text">点击上传<br>训练结果图 / GIF #3</span>
+      </label>
+    </div>
+    <p style="text-align:center; margin-top:18px; font-size:.76rem; color:#2a3a5a;">
+      💡 如需固化图片到演示文稿，可将 GIF 文件放入 <code style="color:#556080;">gifs/</code> 目录并修改 HTML 中的 src 路径
+    </p>
+  </section>
+
+  <!-- ── Slide 7 : Conclusion ────────────────────────────────────── -->
+  <section class="slide" id="slide-concl">
+    <div class="tag">总结</div>
+    <h2>成果总结</h2>
+    <div style="display:flex; flex-direction:column; gap:16px; width:100%; max-width:780px;">
+      <div class="conclusion-card">
+        <span class="icon">✅</span>
+        <div>
+          <h3>完整复现 GNS 架构</h3>
+          <p>使用纯 PyTorch 原生 API 完整实现了 Encoder-Processor-Decoder 图网络框架，保留全部训练与评估流程。</p>
+        </div>
+      </div>
+      <div class="conclusion-card">
+        <span class="icon">🚀</span>
+        <div>
+          <h3>现代化工程升级</h3>
+          <p>适配 Python 3.10 + PyTorch 2.5 + CUDA 12.1，支持 CPU/GPU 自动切换，移除对 TF Estimator 等遗留依赖。</p>
+        </div>
+      </div>
+      <div class="conclusion-card">
+        <span class="icon">🎬</span>
+        <div>
+          <h3>可视化验证</h3>
+          <p>在 WaterRamps 场景上完成 601 步滚动预测，生成预测 vs 真实轨迹对比动图，与原论文结果一致。</p>
+        </div>
+      </div>
+      <div class="conclusion-card">
+        <span class="icon">📖</span>
+        <div>
+          <h3>参考文献</h3>
+          <p>
+            Sanchez-Gonzalez et al., <em>Learning to Simulate Complex Physics with Graph Networks</em>,
+            ICML 2020. &nbsp;<a href="https://arxiv.org/abs/2002.09405" target="_blank">arXiv:2002.09405</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- ── Navigation ──────────────────────────────────────────────── -->
+<div id="nav">
+  <button class="nav-btn" id="btn-prev" onclick="goTo(cur-1)" title="上一页 ←">&#8592;</button>
+  <span id="slide-counter">1 / 8</span>
+  <button class="nav-btn" id="btn-next" onclick="goTo(cur+1)" title="下一页 →">&#8594;</button>
+</div>
+<div id="kbd-hint">← → 方向键切换</div>
+
+<!-- ═══════════════════  SCRIPTS  ════════════════════════════════ -->
+<script>
+/* ─── Slide management ──────────────────────────────────────── */
+const slides = Array.from(document.querySelectorAll('.slide'));
+let cur = 0;
+
+function goTo(n) {
+  if (n < 0 || n >= slides.length) return;
+  const prev = cur;
+  slides[prev].classList.remove('active');
+  slides[prev].classList.add('leaving');
+  setTimeout(() => slides[prev].classList.remove('leaving'), 600);
+  cur = n;
+  slides[cur].classList.add('active');
+  updateUI();
+}
+
+function updateUI() {
+  const total = slides.length;
+  document.getElementById('slide-counter').textContent = `${cur + 1} / ${total}`;
+  document.getElementById('btn-prev').disabled = cur === 0;
+  document.getElementById('btn-next').disabled = cur === total - 1;
+  document.getElementById('progress-bar').style.width = `${((cur + 1) / total) * 100}%`;
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === cur));
+}
+
+/* ─── Build dots ─────────────────────────────────────────────── */
+const dotsEl = document.getElementById('dots');
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+});
+
+/* ─── Keyboard navigation ────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goTo(cur + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); goTo(cur - 1); }
+});
+
+/* ─── Image upload for placeholder ──────────────────────────── */
+function loadImg(input, boxId) {
+  if (!input.files || !input.files[0]) return;
+  const url = URL.createObjectURL(input.files[0]);
+  const box = document.getElementById(boxId);
+  const idx = boxId.slice(-1);
+  const img = document.getElementById('ph-img-' + idx);
+  img.src = url;
+  img.style.display = 'block';
+  box.querySelector('.ph-icon').style.display = 'none';
+  box.querySelector('.ph-text').style.display = 'none';
+}
+
+/* ─── Particle background canvas ─────────────────────────────── */
+(function () {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function initParticles(count = 120) {
+    particles = Array.from({ length: count }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.8 + 0.5,
+      vx: (Math.random() - .5) * .35,
+      vy: (Math.random() - .5) * .35,
+      a: Math.random() * .6 + .15,
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw connection lines
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 140) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(60,120,220,${0.18 * (1 - dist / 140)})`;
+          ctx.lineWidth = .5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw particles
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(100,170,255,${p.a})`;
+      ctx.fill();
+
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -10) p.x = W + 10;
+      if (p.x > W + 10) p.x = -10;
+      if (p.y < -10) p.y = H + 10;
+      if (p.y > H + 10) p.y = -10;
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resize(); initParticles(); });
+  resize();
+  initParticles();
+  draw();
+})();
+
+/* ─── Initial UI state ───────────────────────────────────────── */
+updateUI();
+</script>
+</body>
+</html>
