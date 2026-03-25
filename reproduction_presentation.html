@@ -168,7 +168,7 @@
         <p>3) 训练：</p>
         <p><code>python train.py --cfg configs/dmwater.yaml --exp-name dmwater</code></p>
         <p>4) 评估：</p>
-        <p><code>python eval.py --cfg configs/dmwater.yaml --ckpt ckpts/dmwater/iter_25000.path.tar --data-dir WaterRamps/test</code></p>
+        <p><code>python eval.py --cfg configs/dmwater.yaml --ckpt ckpts/dmwater/iter_25000.pth.tar --data-dir WaterRamps/test</code></p>
       </div>
     </section>
 
@@ -211,7 +211,7 @@
       <div class="kicker">Reference</div>
       <h2>参考资料</h2>
       <div class="panel">
-        <p>论文：<a href="https://arxiv.org/pdf/2002.09405" target="_blank" rel="noopener noreferrer">https://arxiv.org/pdf/2002.09405</a></p>
+        <p>论文：<a href="https://arxiv.org/pdf/2002.09405.pdf" target="_blank" rel="noopener noreferrer">https://arxiv.org/pdf/2002.09405.pdf</a></p>
         <p>仓库：<a href="https://github.com/heavland/GNS-PyTorch" target="_blank" rel="noopener noreferrer">https://github.com/heavland/GNS-PyTorch</a></p>
       </div>
       <p>感谢聆听</p>
@@ -256,6 +256,7 @@
     }
 
     document.addEventListener("keydown", (e) => {
+      if (e.key === " ") e.preventDefault();
       if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") next();
       if (e.key === "ArrowLeft" || e.key === "PageUp") prev();
     });
