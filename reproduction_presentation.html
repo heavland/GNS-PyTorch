@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GNS-PyTorch 复现汇报</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --text: #e9eeff;
+      --muted: #aeb8df;
+      --accent: #7aa2ff;
+      --ok: #41d392;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #1f2c5b 0%, var(--bg) 60%);
+      color: var(--text);
+      overflow: hidden;
+    }
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    .slide {
+      width: 100%;
+      height: 100%;
+      padding: 52px 72px;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+    .slide.active { display: flex; }
+    .kicker {
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    h1, h2 {
+      margin: 0;
+      line-height: 1.2;
+    }
+    h1 { font-size: 54px; }
+    h2 { font-size: 38px; }
+    p, li {
+      color: var(--muted);
+      font-size: 24px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    ul { margin: 0; padding-left: 28px; }
+    .panel {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 20px 24px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    code {
+      background: rgba(122, 162, 255, 0.12);
+      color: #c5d7ff;
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: 19px;
+    }
+    .gif-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .gif-row img {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #0b0f1f;
+    }
+    .footer {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      color: #8f9ac7;
+      font-size: 14px;
+    }
+    .dots {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #51609a;
+    }
+    .dot.active { background: var(--ok); }
+    .hint { color: #94a4e6; font-size: 16px; }
+    a { color: #9ec1ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <section class="slide active">
+      <div class="kicker">Evening Meeting</div>
+      <h1>GNS-PyTorch 复现成果汇报</h1>
+      <p>项目：Graph Network-based Simulators（ICML 2020）</p>
+      <p>论文：Learning to simulate complex physics with graph networks</p>
+      <p class="hint">使用方向键 ← / → 或空格键翻页</p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">01</div>
+      <h2>复现目标与结论</h2>
+      <div class="panel">
+        <ul>
+          <li>目标：在 PyTorch 版本中复现 GNS 的粒子动力学模拟能力。</li>
+          <li>结论：已完成从数据处理、训练到评估可视化的完整流程复现。</li>
+          <li>输出：可生成 rollout 可视化 GIF，结果路径位于 <code>eval_vis/</code>。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">02</div>
+      <h2>方法速览（对应论文）</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <p><strong>核心建模：</strong></p>
+          <ul>
+            <li>把粒子系统表示为图（节点=粒子，边=邻域交互）。</li>
+            <li>通过消息传递网络学习局部相互作用。</li>
+            <li>逐步预测加速度/位移，实现长时序 rollout。</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <p><strong>复现关注点：</strong></p>
+          <ul>
+            <li>数据提取与序列构建一致性。</li>
+            <li>训练参数与配置文件对齐。</li>
+            <li>评估时多步误差累积与可视化表现。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">03</div>
+      <h2>复现实操流程（仓库命令）</h2>
+      <div class="panel">
+        <p>1) 环境安装：</p>
+        <p><code>conda env create -f environment.yml</code></p>
+        <p>2) 数据下载与转换：</p>
+        <p><code>bash download_dataset.sh WaterRamps tfdatasets/</code></p>
+        <p><code>python extract_tfrs.py --data-path tfdatasets/WaterRamps</code></p>
+        <p>3) 训练：</p>
+        <p><code>python train.py --cfg configs/dmwater.yaml --exp-name dmwater</code></p>
+        <p>4) 评估：</p>
+        <p><code>python eval.py --cfg configs/dmwater.yaml --ckpt ckpts/dmwater/iter_25000.path.tar --data-dir WaterRamps/test</code></p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">04</div>
+      <h2>可视化结果（仓库示例）</h2>
+      <div class="gif-row">
+        <img src="gifs/0.gif" alt="rollout 0" />
+        <img src="gifs/1.gif" alt="rollout 1" />
+        <img src="gifs/2.gif" alt="rollout 2" />
+      </div>
+      <p>说明：展示模型 rollout 的时序演化效果，可在会议中直观演示复现质量。</p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">05</div>
+      <h2>我的复现总结与下一步</h2>
+      <div class="grid-2">
+        <div class="panel">
+          <p><strong>已完成</strong></p>
+          <ul>
+            <li>端到端复现流程打通。</li>
+            <li>训练/评估脚本可运行。</li>
+            <li>可产出可视化结果用于展示。</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <p><strong>后续可做</strong></p>
+          <ul>
+            <li>补充定量指标（MSE/rollout error）。</li>
+            <li>对不同数据集与参数做 ablation。</li>
+            <li>优化训练速度与显存占用。</li>
+          </ul>
+        </div>
+      </div>
+      <p class="hint">如需替换为你的具体实验数值，可直接修改本页文字。</p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Reference</div>
+      <h2>参考资料</h2>
+      <div class="panel">
+        <p>论文：<a href="https://arxiv.org/pdf/2002.09405" target="_blank" rel="noopener noreferrer">https://arxiv.org/pdf/2002.09405</a></p>
+        <p>仓库：<a href="https://github.com/heavland/GNS-PyTorch" target="_blank" rel="noopener noreferrer">https://github.com/heavland/GNS-PyTorch</a></p>
+      </div>
+      <p>感谢聆听</p>
+    </section>
+
+    <div class="footer">
+      <div id="pageText">1 / 7</div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const pageText = document.getElementById("pageText");
+    const dots = document.getElementById("dots");
+    let index = 0;
+
+    slides.forEach((_, i) => {
+      const d = document.createElement("div");
+      d.className = "dot" + (i === 0 ? " active" : "");
+      dots.appendChild(d);
+    });
+
+    function render() {
+      slides.forEach((s, i) => s.classList.toggle("active", i === index));
+      pageText.textContent = `${index + 1} / ${slides.length}`;
+      Array.from(dots.children).forEach((d, i) => d.classList.toggle("active", i === index));
+    }
+
+    function next() {
+      if (index < slides.length - 1) {
+        index += 1;
+        render();
+      }
+    }
+
+    function prev() {
+      if (index > 0) {
+        index -= 1;
+        render();
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") next();
+      if (e.key === "ArrowLeft" || e.key === "PageUp") prev();
+    });
+
+    document.addEventListener("click", next);
+  </script>
+</body>
+</html>
