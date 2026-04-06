@@ -7,7 +7,20 @@ This repo uses purely PyTorch's native APIs, and is a re-implementation of the [
 Set up conda env and install dependencies:
 ```
 conda env create -f environment.yml
+conda activate GNS-PyTorch
 ```
+
+This environment is upgraded for modern GPUs (including RTX 50 series) with PyTorch + CUDA 12.1.
+
+Verify installation:
+```
+python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"
+python -c "import torch; \
+    print((lambda i: (torch.cuda.get_device_name(i), torch.cuda.get_device_capability(i)))(torch.cuda.current_device()) if torch.cuda.is_available() else 'CUDA not available')"
+```
+
+If your driver/CUDA combination differs, regenerate install command from:
+https://pytorch.org/get-started/locally/
 
 ### Data
 Download datasets and convert to pytorch-friendly format:
